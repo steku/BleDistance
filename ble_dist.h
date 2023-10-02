@@ -37,7 +37,7 @@ class BeaconTracker {
       time_buf.reserve(BUF_SIZE+1);
     }
 
-  private:
+private:  
     static std::string reverse_bytes(std::string uuid) {
       uuid.erase(std::remove(uuid.begin(), uuid.end(), '-'), uuid.end());
       std::string out = uuid;
@@ -97,16 +97,34 @@ class BeaconTracker {
 
 std::vector<BeaconTracker> trackers;
 
-void parseAdvertisement(esphome::esp32_ble_tracker::ESPBTDevice dev) {
+static std::string parseAdvertisement(esphome::esp32_ble_tracker::ESPBTDevice dev) {
   if(dev.get_ibeacon().has_value()) {
     auto ib = dev.get_ibeacon().value();
     auto uuid = ib.get_uuid();
     auto txpwr = ib.get_signal_power();
     auto rssi = dev.get_rssi();
     for(auto &t : trackers)
-      if(t.uuid == uuid)
+      if(t.uuid == uuid) {
         t.update(rssi, txpwr);
+        return uuid.to_string();
+      }
   }
+  return "";
+}
+
+static std::string reverse_bytes(std::string uuid) {
+  uuid.erase(std::remove(uuid.begin(), uuid.end(), '-'), uuid.end());
+  std::string out = uuid;
+  size_t len = uuid.length();
+  for(size_t i = 0; i < len; i += 2) {
+    out[i] = uuid[len - i - 2];
+    out[i + 1] = uuid[len - i - 1];
+  }
+  out.insert(8, "-");
+  out.insert(13, "-");
+  out.insert(18, "-");
+  out.insert(23, "-");
+  return out;
 }
 
 void addTracker(std::string n, std::string u, float fcmin = FCMIN, float beta = BETA) {
